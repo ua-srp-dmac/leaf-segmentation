@@ -77,6 +77,9 @@ def main(args):
         else:
 
             X_train, X_test = train_test_split(images, train_size=args.split)
+            
+            print('X_train:', X_train)
+            print('X_test:', X_test)
 
             anns_train = filter_annotations(annotations, X_train)
             anns_test=filter_annotations(annotations, X_test)
