@@ -54,6 +54,8 @@ def main(args):
 
         if args.having_annotations:
             images = funcy.lremove(lambda i: i['id'] not in images_with_annotations, images)
+            
+            
 
 
         if args.multi_class:
@@ -78,9 +80,6 @@ def main(args):
 
             X_train, X_test = train_test_split(images, train_size=args.split)
             
-            print('X_train:', X_train)
-            print('X_test:', X_test)
-
             anns_train = filter_annotations(annotations, X_train)
             anns_test=filter_annotations(annotations, X_test)
 
