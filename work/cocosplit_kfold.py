@@ -14,7 +14,7 @@ from sklearn.model_selection import KFold
 def save_coco(file_path, info, licenses, images, annotations, categories):
     """ Saves COCO formatted annotiations in a JSON file at the file_path specified.
     """
-    with open(file_path, 'a+', encoding='UTF-8') as coco:
+    with open(file_path, 'w+', encoding='UTF-8') as coco:
         json.dump({ 
             'info': info,
             'licenses': licenses,
@@ -66,7 +66,7 @@ def filter_images(images, manual_images):
         else:
             images_without_manual_area.append(image)
 
-    print('Filtered out', len(images_without_manual_area), 'images without manual area calculations.')
+    print('Filtered out', len(images_without_manual_area), 'images missing manual area calculations.')
     return images_with_manual_area
 
 
@@ -132,8 +132,8 @@ def main(args):
             train_images = numpy_images[train_indices].tolist()
             test_images = numpy_images[test_indices].tolist()
             
-            print("\n\nk =", index) 
-            print("\nTraining set size:", len(train_images), "\nTest set size:", len(test_images))
+            print("\nFold", index) 
+            print("Training set size:", len(train_images), "\nTest set size:", len(test_images))
             
             if args.print_indices:
                 print("Train indicies:", train_indices)
