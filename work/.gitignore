@@ -1,0 +1,6 @@
+*.jpg
+*.npz
+*.pth
+*.jpeg
+.ipynb_checkpoints/
+detectron2_repo/
