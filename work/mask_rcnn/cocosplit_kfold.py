@@ -89,7 +89,7 @@ def main(args):
     """
     
     # read excel file with manual area values
-    df = pd.read_excel('/home/jovyan/work/First_batch_area.xlsx')
+    df = pd.read_excel('/home/jovyan/work/data/manual_area.xlsx')
     
     # get filenames of images with manual area values without extension
     df['picture_split'] = df['picture'].str.split('.' , expand = True)[0]
