@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-# import pyboof as pb
+import pyboof as pb
 import pandas as pd
 from pyzbar.pyzbar import decode, ZBarSymbol
 import cv2
@@ -12,12 +12,15 @@ from dbr import *
 
 from qreader import QReader
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 # Initialize QReader
 qreader = QReader()
 
 # Initialize Dynamsoft Reader with license key (30 day free trial available)
-BarcodeReader.init_license("YOUR_LICENSE_KEY")
+BarcodeReader.init_license("")
 dbr_reader = BarcodeReader()
 
 
@@ -31,7 +34,8 @@ def decode_dbr(image_path):
             for text_result in results:
                 return text_result.barcode_text
     except Exception as e:
-        print('DBR:', e)
+        print('dbr error:', e)
+        return None
     
 # PyZBar: https://github.com/NaturalHistoryMuseum/pyzbar/
 def decode_pyzbar(image_path):
@@ -40,8 +44,8 @@ def decode_pyzbar(image_path):
         decoded_objects = decode(image, symbols=[ZBarSymbol.QRCODE])
         return decoded_objects[0].data.decode('utf-8') if decoded_objects else None
     except Exception as e:
-        print('pyzbar', e)
-        
+        print('pyzbar error:', e)
+        return None
 
 # QReader: https://github.com/Eric-Canas/qreader
 def decode_qreader(image_path):
@@ -52,7 +56,8 @@ def decode_qreader(image_path):
         if len(decoded_text):
             return decoded_text[0]
     except Exception as e:
-        print('qreader:', e)
+        print('qreader error:', e)
+        return None
 
 # Pyboof: https://github.com/lessthanoptimal/PyBoof/tree/SNAPSHOT
 def decode_pyboof(image_path):
@@ -63,8 +68,9 @@ def decode_pyboof(image_path):
         detector.detect(image)
 
         for qr in detector.detections:
-            print(qr.message)
+            return qr.message
     except Exception as e:
+        print('pyboof error:', e)
         return None
 
 # OpenCV: 
@@ -75,6 +81,7 @@ def decode_opencv(image_path):
         data, bbox, _ = detector.detectAndDecode(image)
         return data if data else None
     except Exception as e:
+        print('opencv error:', e)
         return None
 
 
@@ -85,64 +92,56 @@ parser = argparse.ArgumentParser(description='Decode QR codes from images in a d
 parser.add_argument('image_folder', type=str, help='Path to the directory containing images')
 
 args = parser.parse_args()
+image_folder = args.image_folder
+
+decoding_functions = [
+    ('pyzbar', decode_pyzbar),
+    ('opencv', decode_opencv),
+    ('qreader', decode_qreader),
+    ('dbr', decode_dbr),
+    ('pyboof', decode_pyboof),
+]
 
 # List to store the results
 results = []
 
 # Loop through each image in the folder
-for filename in os.listdir(args.image_folder):
+for filename in os.listdir(image_folder):
     if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-        image_path = os.path.join(args.image_folder, filename)
-        result_pyzbar = decode_pyzbar(image_path)
-        result_opencv = decode_opencv(image_path)
-        result_qreader = decode_qreader(image_path)
-        result_dbr = decode_dbr(image_path)
+        image_path = os.path.join(image_folder, filename)
+        result = {'original_image_name': os.path.basename(image_path)}
         
-        results.append({
-            'original_image_name': os.path.basename(image_path),  # Get the file name only
-            'pyzbar_result': result_pyzbar,
-            'opencv_result': result_opencv,
-            'qreader_result': result_qreader,
-            'dbr_result': result_dbr,
-        })
+        for name, func in decoding_functions:
+            result[f'{name}_result'] = func(image_path)
+        
+        results.append(result)
 
 # Create a DataFrame
 df = pd.DataFrame(results)
 
-# Calculate metrics
+# Calculate metrics for each library
 total_images = len(df)
-pyzbar_success = df['pyzbar_result'].notna().sum()
-opencv_success = df['opencv_result'].notna().sum()
-qreader_success = df['qreader_result'].notna().sum()
-dbr_success = df['dbr_result'].notna().sum()
+metrics = {'total_images': total_images}
+success_percentages = []
 
+for name, _ in decoding_functions:
+    success_count = df[f'{name}_result'].notna().sum()
+    success_percent = (success_count / total_images) * 100
+    metrics[f'{name}_success_percent'] = success_percent
+    success_percentages.append({'library': name, 'success_percent': success_percent})
 
-metrics = {
-    'total_images': total_images,
-    'pyzbar_success': pyzbar_success,
-    'pyzbar_success_percent': (pyzbar_success / total_images) * 100,
-    'opencv_success': opencv_success,
-    'opencv_success_percent': (opencv_success / total_images) * 100,
-    'qreader_success': qreader_success,
-    'qreader_success_percent': (qreader_success / total_images) * 100,
-    'dbr_success': dbr_success,
-    'dbr_success_percent': (dbr_success / total_images) * 100
-}
-
-# Add a column to the DataFrame to indicate success
-df['success'] = df['pyzbar_result'].notna() | df['opencv_result'].notna() | df['qreader_result'].notna()
+# Add a column to the DataFrame to indicate success with any library
+df['success'] = df[[f'{name}_result' for name, _ in decoding_functions]].notna().any(axis=1)
 
 # Calculate the percentage of successful images
 success_percent = (df['success'].sum() / len(df)) * 100
-
-
 
 # Print metrics
 print(metrics)
 print(f"Percentage of images with successful decoding: {success_percent:.2f}%")
 
 # Export DataFrame to CSV
-df.to_csv('qr_code_results.csv', index=False)
+df.to_csv('open_source_qr_code_results.csv', index=False)
     
     
     
